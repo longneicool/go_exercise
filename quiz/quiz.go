@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 type qAnda struct {
@@ -41,6 +42,7 @@ func isFileExist(filename string) bool {
 
 func main() {
 	filename := flag.String("f", "problems.csv", "the problem file")
+	timeLimit := flag.Uint("limit", 30, "The time limit of quiz")
 	flag.Parse()
 
 	filePath := *filename
@@ -64,16 +66,39 @@ func main() {
 
 	qAnda, incorrectQuestion := getQAndA(records)
 	inReader := bufio.NewReader(os.Stdin)
-	for _, s := range qAnda {
-		fmt.Printf("->%s:", s.question)
-		inputAnswer, err := inReader.ReadString('\n')
-		inputAnswer = strings.Replace(inputAnswer, "\n", "", -1)
-		if err != nil {
-			continue
+
+	for {
+		fmt.Println("Ready to start the quiz ? y or no")
+		input, _ := inReader.ReadString('\n')
+		input = strings.Replace(input, "\n", "", -1)
+		if input == "yes" {
+			break
 		}
 
-		if s.answer != inputAnswer {
-			incorrectQuestion++
+		if input != "no" {
+			fmt.Println("Please input yes or no")
+		}
+	}
+
+	timer1 := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+	answerCh := make(chan string)
+	for _, s := range qAnda {
+		fmt.Printf("->%s:", s.question)
+		go func() {
+			answerStr, _ := inReader.ReadString('\n')
+			answerStr = strings.Replace(answerStr, "\n", "", -1)
+			answerCh <- answerStr
+		}()
+
+		select {
+		case answer := <-answerCh:
+			if answer != s.answer {
+				incorrectQuestion++
+			}
+		case <-timer1.C:
+			fmt.Println("Time out")
+			fmt.Printf("Total problem:%d, incorrect problem: %d\n", len(records), incorrectQuestion)
+			return
 		}
 	}
 
