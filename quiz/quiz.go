@@ -40,6 +40,13 @@ func isFileExist(filename string) bool {
 	return !info.IsDir()
 }
 
+func isEqual(input string, expected string) bool {
+	input = strings.ToLower(strings.Replace(input, " ", "", -1))
+	expected = strings.ToLower(strings.Replace(expected, " ", "", -1))
+
+	return strings.Compare(input, expected) == 0
+}
+
 func main() {
 	filename := flag.String("f", "problems.csv", "the problem file")
 	timeLimit := flag.Uint("limit", 30, "The time limit of quiz")
@@ -92,7 +99,7 @@ func main() {
 
 		select {
 		case answer := <-answerCh:
-			if answer != s.answer {
+			if !isEqual(answer, s.answer) {
 				incorrectQuestion++
 			}
 		case <-timer1.C:
